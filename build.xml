@@ -1,11 +1,11 @@
-<project name="httpprojector" default="build">
+<project name="bypassproxy" default="build">
   <target name="clean" description="Clean the target directory">
     <delete dir="build"/>
   </target>
 
   <target name="build" description="Build the java sources">
-    <mkdir dir="build/httpprojector"/>
-    <javac destdir="build/httpprojector"
+    <mkdir dir="build/bypassproxy"/>
+    <javac destdir="build/bypassproxy"
            debug="true"
            includeAntRuntime="false"
            source="1.8"
@@ -14,7 +14,7 @@
       <src path="src/java"/>
       <include name="**/*.java"/>
     </javac>
-    <copy todir="build/httpprojector">
+    <copy todir="build/bypassproxy">
       <fileset dir="src/java" excludes="**/*.java"/>
     </copy>
   </target>
@@ -27,11 +27,24 @@
     </javadoc>
   </target>
 
-  <target name="run" depends="build">
-    <java classpath="build/httpprojector"
-          classname="com.noteflight.httpprojector.HttpProjectorServer"
+  <target name="runproxy" depends="build">
+    <java classpath="build/bypassproxy"
+          classname="com.noteflight.bypassproxy.BypassProxy"
           fork="true">
       <arg value="8181"/>
+      <arg value="8182"/>
+    </java>
+  </target>
+
+  <target name="runagent" depends="build">
+    <java classpath="build/bypassproxy"
+          classname="com.noteflight.bypassproxy.ProxyAgent"
+          fork="true">
+      <arg value="localhost"/>
+      <arg value="8182"/>
+      <arg value="testserver.abramsons.info:8181"/>
+      <arg value="localhost"/>
+      <arg value="3000"/>
     </java>
   </target>
 </project>

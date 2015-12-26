@@ -1,17 +1,23 @@
-package com.noteflight.httpprojector;
+package com.noteflight.bypassproxy;
 
 import java.io.*;
 import java.net.*;
 
-public class ProjectedHttpServer
+public class ProxyHttpServer
   implements Runnable
 {
   private int _port;
   private ServerSocket _serverSocket;
+  private IAgentConnections _agentConnections;
+  private IProxyConnections _proxyConnections;
   
-  public ProjectedHttpServer(int port)
+  public ProxyHttpServer(int port,
+                         IAgentConnections agentConnections,
+                         IProxyConnections proxyConnections)
   {
     this._port = port;
+    this._agentConnections = agentConnections;
+    this._proxyConnections = proxyConnections;
   }
 
   public void start()
@@ -28,7 +34,7 @@ public class ProjectedHttpServer
         while(true) {
           try {
             Socket s = _serverSocket.accept();
-            ProjectedHttpConnection c = new ProjectedHttpConnection(s);
+            ProxyHttpConnection c = new ProxyHttpConnection(s, _agentConnections, _proxyConnections);
             c.start();
           }
           catch(IOException exc) {

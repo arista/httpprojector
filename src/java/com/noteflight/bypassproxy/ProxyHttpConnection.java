@@ -1,9 +1,9 @@
-package com.noteflight.httpprojector;
+package com.noteflight.bypassproxy;
 
 import java.io.*;
 import java.net.*;
 
-public class ProjectedHttpConnection
+public class ProxyHttpConnection
   implements Runnable
 {
   private Socket _socket;
@@ -11,10 +11,17 @@ public class ProjectedHttpConnection
   private OutputStream _out;
   
   private ByteArrayOutputStream _initialBuffer = new ByteArrayOutputStream();
+  private IAgentConnections _agentConnections;
+  private IProxyConnections _proxyConnections;
+  private String _connectionName;
 
-  public ProjectedHttpConnection(Socket socket)
+  public ProxyHttpConnection(Socket socket,
+                             IAgentConnections agentConnections,
+                             IProxyConnections proxyConnections)
   {
     this._socket = socket;
+    this._agentConnections = agentConnections;
+    this._proxyConnections = proxyConnections;
   }
 
   public void start()
@@ -24,13 +31,35 @@ public class ProjectedHttpConnection
 
   public void run()
   {
-    System.out.println("Got connection from " + _socket.getInetAddress());
+    System.out.println("Got http connection from " + _socket.getInetAddress());
     try {
       try {
         _in = _socket.getInputStream();
         _out = _socket.getOutputStream();
 
         String host = readHost(_initialBuffer);
+        System.out.println("host = " + host);
+
+        AgentConnection agent = _agentConnections.getAgent(host);
+        if(agent != null) {
+          _connectionName = _proxyConnections.registerProxyConnection(this);
+          agent.sendPacket(new OpenConnectionPacket(_connectionName));
+          agent.sendPacket(new RequestDataPacket(_connectionName, _initialBuffer.toByteArray()));
+
+          // Keep reading data
+          byte[] buf = new byte[4096];
+          int numread;
+          while((numread = _in.read(buf)) >= 0) {
+            byte[] sendBuf = new byte[numread];
+            System.arraycopy(buf, 0, sendBuf, 0, numread);
+            agent.sendPacket(new RequestDataPacket(_connectionName, sendBuf));
+          }
+          agent.sendPacket(new CloseConnectionPacket(_connectionName));
+          _proxyConnections.removeProxyConnection(_connectionName);
+        }
+        else {
+          // FIXME - handle null agent
+        }
       }
       finally {
         if(_socket != null) {
@@ -82,6 +111,28 @@ public class ProjectedHttpConnection
       else {
         return null;
       }
+    }
+  }
+
+  public void responseData(byte[] data)
+  {
+    try {
+      _out.write(data);
+    }
+    catch(IOException exc) {
+      throw new RuntimeException(exc);
+      // FIXME - implement this
+    }
+  }
+
+  public void closeConnection()
+  {
+    try {
+      _out.close();
+    }
+    catch(IOException exc) {
+      throw new RuntimeException(exc);
+      // FIXME - implement this
     }
   }
 }
