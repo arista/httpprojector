@@ -1,0 +1,37 @@
+<project name="httpprojector" default="build">
+  <target name="clean" description="Clean the target directory">
+    <delete dir="build"/>
+  </target>
+
+  <target name="build" description="Build the java sources">
+    <mkdir dir="build/httpprojector"/>
+    <javac destdir="build/httpprojector"
+           debug="true"
+           includeAntRuntime="false"
+           source="1.8"
+           >
+      <compilerarg value="-Xlint:unchecked"/>
+      <src path="src/java"/>
+      <include name="**/*.java"/>
+    </javac>
+    <copy todir="build/httpprojector">
+      <fileset dir="src/java" excludes="**/*.java"/>
+    </copy>
+  </target>
+
+  <target name="javadoc" description="Generate the javadoc for the project">
+    <javadoc destdir="build/javadoc">
+      <sourcepath>
+        <pathelement location="src/java"/>
+      </sourcepath>
+    </javadoc>
+  </target>
+
+  <target name="run" depends="build">
+    <java classpath="build/httpprojector"
+          classname="com.noteflight.httpprojector.HttpProjectorServer"
+          fork="true">
+      <arg value="8181"/>
+    </java>
+  </target>
+</project>
